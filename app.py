@@ -101,7 +101,7 @@ plt.rcParams.update({
 def get_ipv4_host(host):
     return socket.gethostbyname(host)
 
-#connecting with our database and taking our queries from the dataload ipynb
+#connecting with our database and taking our queries from the dataload ipynbbb
 @st.cache_resource
 def get_connection():
     return psycopg2.connect(
