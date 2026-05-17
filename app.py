@@ -7,6 +7,7 @@ import psycopg2
 from matplotlib.colors import LinearSegmentedColormap
 from dotenv import load_dotenv
 import os
+import socket
 
 st.set_page_config(
     page_title="LondonAid Dashboard",
@@ -97,22 +98,18 @@ plt.rcParams.update({
     'grid.alpha': 0.5
 })
 
+def get_ipv4_host(host):
+    return socket.gethostbyname(host)
+
 #connecting with our database and taking our queries from the dataload ipynb
 @st.cache_resource
 def get_connection():
-
-    try:
-        host = st.secrets["DB_HOST"]
-    except Exception:
-        load_dotenv()
-        host = os.getenv("DB_HOST")
-
     return psycopg2.connect(
-        host=os.getenv("DB_HOST"),
-        database=os.getenv("DB_NAME"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-        port=os.getenv("DB_PORT"),
+        host=get_ipv4_host(st.secrets["DB_HOST"]),
+        database=st.secrets["DB_NAME"],
+        user=st.secrets["DB_USER"],
+        password=st.secrets["DB_PASSWORD"],
+        port=st.secrets["DB_PORT"],
         sslmode="require"
     )
 
