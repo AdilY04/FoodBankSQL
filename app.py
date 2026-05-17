@@ -100,6 +100,13 @@ plt.rcParams.update({
 #connecting with our database and taking our queries from the dataload ipynb
 @st.cache_resource
 def get_connection():
+
+    try:
+        host = st.secrets["DB_HOST"]
+    except Exception:
+        load_dotenv()
+        host = os.getenv("DB_HOST")
+
     return psycopg2.connect(
         host=os.getenv("DB_HOST"),
         database=os.getenv("DB_NAME"),
