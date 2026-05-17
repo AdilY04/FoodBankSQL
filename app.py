@@ -4,26 +4,23 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import seaborn as sns
 import psycopg2
+from matplotlib.colors import LinearSegmentedColormap
 from dotenv import load_dotenv
 import os
 
-# ── CONFIG ──────────────────────────────────────────────
 st.set_page_config(
     page_title="LondonAid Dashboard",
-    page_icon="🥫",
+    page_icon=None,
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# ── CUSTOM CSS ───────────────────────────────────────────
+#adding some CSS for aesthetic affect. did use AI assistance for some of the CSS code.
 st.markdown("""
     <style>
-        /* Global background */
         .stApp {
             background-color: #0d1117;
         }
-
-        /* Metric cards */
         [data-testid="metric-container"] {
             background-color: #161b22;
             border: 1px solid #00b4d8;
@@ -44,8 +41,6 @@ st.markdown("""
         [data-testid="metric-container"] [data-testid="metric-delta"] {
             color: #f85149 !important;
         }
-
-        /* Chart containers */
         .chart-card {
             background-color: #161b22;
             border-radius: 12px;
@@ -53,8 +48,6 @@ st.markdown("""
             border: 1px solid #21262d;
             margin-bottom: 1rem;
         }
-
-        /* Section titles */
         .section-title {
             color: #ffffff;
             font-size: 1rem;
@@ -63,35 +56,23 @@ st.markdown("""
             letter-spacing: 0.08em;
             margin-bottom: 0.5rem;
         }
-
-        /* Divider */
         hr {
             border-color: #21262d !important;
         }
-
-        /* Expander */
         .streamlit-expanderHeader {
             background-color: #161b22 !important;
             color: #8b949e !important;
             border-radius: 8px !important;
         }
-
-        /* Dataframe */
-        .dataframe {
-            background-color: #161b22 !important;
-        }
-
-        /* Hide streamlit branding */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         header {visibility: hidden;}
-
-        /* Main title */
         .main-title {
-            font-size: 1.8rem;
-            font-weight: 700;
+            font-size: 3rem;
+            font-weight: 800;
             color: #ffffff;
             margin-bottom: 0;
+            letter-spacing: -0.02em;
         }
         .main-subtitle {
             font-size: 0.9rem;
@@ -103,7 +84,6 @@ st.markdown("""
 
 load_dotenv()
 
-# ── MATPLOTLIB DARK THEME ────────────────────────────────
 plt.rcParams.update({
     'figure.facecolor': '#161b22',
     'axes.facecolor': '#161b22',
@@ -117,7 +97,7 @@ plt.rcParams.update({
     'grid.alpha': 0.5
 })
 
-# ── CONNECTION ───────────────────────────────────────────
+#connecting with our database and taking our queries from the dataload ipynb
 @st.cache_resource
 def get_connection():
     return psycopg2.connect(
@@ -131,7 +111,6 @@ def get_connection():
 
 conn = get_connection()
 
-# ── QUERIES ──────────────────────────────────────────────
 @st.cache_data
 def load_depletion():
     return pd.read_sql("""
@@ -193,21 +172,20 @@ def load_borough_totals():
         ORDER BY total_requests DESC;
     """, conn)
 
-# ── LOAD DATA ────────────────────────────────────────────
+#working with dfs, data analyst style.
 df_dep = load_depletion()
 df_vol = load_volunteer()
 df_dem = load_demand()
 df_bor = load_borough_totals()
 
-# ── HEADER ───────────────────────────────────────────────
-st.markdown('<p class="main-title">🥫 LondonAid Food Bank</p>', 
+#header and row to signal kpis. 
+st.markdown('<p class="main-title">LondonAid Food Bank</p>',
             unsafe_allow_html=True)
-st.markdown('<p class="main-subtitle">Operational Analytics Dashboard — London Boroughs</p>', 
+st.markdown('<p class="main-subtitle">Operational Analytics Dashboard — London Boroughs</p>',
             unsafe_allow_html=True)
 
 st.divider()
 
-# ── KPI ROW ──────────────────────────────────────────────
 k1, k2, k3, k4 = st.columns(4)
 
 k1.metric(
@@ -231,36 +209,35 @@ k4.metric(
 
 st.divider()
 
-# ── ROW 1: DEPLETION + BOROUGH PIE ───────────────────────
+#stock depletion and borough donut
 col1, col2 = st.columns([2, 1])
 
 with col1:
-    st.markdown('<p class="section-title">📦 Stock Depletion Ratio by Item</p>', 
+    st.markdown('<p class="section-title">Stock Depletion Ratio by Item</p>',
                 unsafe_allow_html=True)
-    
+
     colors = ['#f85149' if x > 1 else '#00b4d8' for x in df_dep['depletion_ratio']]
-    
+
     fig1, ax1 = plt.subplots(figsize=(10, 5))
-    bars = ax1.barh(df_dep['item_name'], df_dep['depletion_ratio'], 
-                    color=colors, height=0.6)
-    ax1.axvline(x=1, color='#ffffff', linestyle='--', 
-                linewidth=1, alpha=0.5, label='Critical threshold')
+    ax1.barh(df_dep['item_name'], df_dep['depletion_ratio'],
+             color=colors, height=0.6)
+    ax1.axvline(x=1, color='#ffffff', linestyle='--',
+                linewidth=1, alpha=0.5)
     ax1.set_xlabel('Depletion Ratio', color='#8b949e')
     ax1.grid(axis='x')
-    ax1.legend(facecolor='#161b22', edgecolor='#21262d')
-    
+
     critical = mpatches.Patch(color='#f85149', label='Critical')
     healthy = mpatches.Patch(color='#00b4d8', label='Healthy')
-    ax1.legend(handles=[critical, healthy], 
+    ax1.legend(handles=[critical, healthy],
                facecolor='#161b22', edgecolor='#21262d')
-    
+
     plt.tight_layout()
     st.pyplot(fig1)
 
 with col2:
-    st.markdown('<p class="section-title">🗺️ Requests by Borough</p>', 
+    st.markdown('<p class="section-title">Requests by Borough</p>',
                 unsafe_allow_html=True)
-    
+
     fig2, ax2 = plt.subplots(figsize=(5, 5))
     teal_shades = ['#00b4d8', '#0096c7', '#0077b6', '#023e8a', '#03045e']
     wedges, texts, autotexts = ax2.pie(
@@ -277,14 +254,14 @@ with col2:
     for autotext in autotexts:
         autotext.set_color('#ffffff')
         autotext.set_fontsize(9)
-    
+
     plt.tight_layout()
     st.pyplot(fig2)
 
 st.divider()
 
-# ── ROW 2: VOLUNTEER CHART ───────────────────────────────
-st.markdown('<p class="section-title">🙋 Volunteer Hours vs Fulfilled Requests</p>', 
+#a chart of volunteer hours vs fulfilled requests.
+st.markdown('<p class="section-title">Volunteer Hours vs Fulfilled Requests</p>',
             unsafe_allow_html=True)
 
 fig3, ax3 = plt.subplots(figsize=(14, 4))
@@ -318,8 +295,8 @@ st.pyplot(fig3)
 
 st.divider()
 
-# ── ROW 3: HEATMAP ───────────────────────────────────────
-st.markdown('<p class="section-title">🌡️ Demand Heatmap — Borough × Month</p>', 
+#borough heatmap
+st.markdown('<p class="section-title">Demand Heatmap — Borough x Month</p>',
             unsafe_allow_html=True)
 
 pivot = df_dem.pivot_table(
@@ -327,12 +304,17 @@ pivot = df_dem.pivot_table(
     columns='month',
     values='total_requests',
     fill_value=0
+).astype(float)
+
+from matplotlib.colors import LinearSegmentedColormap
+blue_cmap = LinearSegmentedColormap.from_list(
+    'londonaid_blue', ['#0d1117', '#023e8a', '#0096c7', '#00b4d8']
 )
 
 fig5, ax5 = plt.subplots(figsize=(14, 4))
 sns.heatmap(
-    pivot, annot=True, fmt='d',
-    cmap='YlOrRd', linewidths=0.5,
+    pivot, annot=True, fmt='.0f',
+    cmap=blue_cmap, linewidths=0.5,
     linecolor='#0d1117',
     cbar_kws={'label': 'Requests'},
     ax=ax5
@@ -344,4 +326,4 @@ plt.tight_layout()
 st.pyplot(fig5)
 
 st.divider()
-st.caption("LondonAid Analytics Dashboard · IOT552U Assessment · Synthetic data · Built with Streamlit + Supabase")
+st.caption("LondonAid Analytics Dashboard · Synthetic data · Built with Streamlit + Supabase")
